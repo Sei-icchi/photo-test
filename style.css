@@ -6,6 +6,7 @@
   --primary: #2563eb;
   --danger: #e11d48;
   --radius: 12px;
+  --card-shadow: 0 8px 24px rgba(0,0,0,.06);
 }
 
 * { box-sizing: border-box; }
@@ -16,7 +17,7 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
-  padding: 16px;
+  padding: 16px 16px 70px; /* 下にフッター分の余白 */
   font-size: 18px; /* スマホで少し大きめ */
 }
 
@@ -24,12 +25,12 @@ body {
 .muted { color: var(--muted); }
 
 /* Cards & Screens */
-.centered, #score-screen, #settings-screen {
+.card {
   max-width: 960px;
   margin: 6vh auto 0;
   background: #fff;
   border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  box-shadow: var(--card-shadow);
   padding: 24px 20px;
 }
 .centered { text-align: center; }
@@ -56,21 +57,17 @@ body {
   border-radius: 10px;
   background: #fff;
 }
-.storage-choices {
-  display: flex;
-  gap: 18px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 6px;
+
+.genre-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 14px;
+  max-width: 520px;
+  width: 100%;
+  margin: 8px auto 0;
+  text-align: left;
 }
-#file-setup { margin-top: 10px; }
-.file-setup-row {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 6px;
-}
-#file-status { margin-top: 4px; }
+.genre-grid label { white-space: nowrap; }
 
 /* Buttons */
 button {
@@ -87,21 +84,13 @@ button {
 button:hover { transform: translateY(-1px); }
 button:disabled { opacity: .6; cursor: not-allowed; }
 button.primary { background: var(--primary); color: #fff; }
-
-.fake-button {
-  display: inline-block;
-  padding: 10px 16px;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 2px 0 rgba(0,0,0,.06);
-  cursor: pointer;
-}
-.import-label input[type="file"] { display: none; }
+button.danger { background: var(--danger); color: #fff; }
 
 /* Quiz Screen */
 .question {
   max-width: 900px;
-  margin: 0 auto 12px;
+  margin: 24px auto; /* ← 上下に空間を追加 */
+  padding: 8px 0;
   font-size: 1.2rem;
   font-weight: 600;
 }
@@ -110,7 +99,7 @@ button.primary { background: var(--primary); color: #fff; }
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2x2 */
-  gap: 12px; /* 間隔を少し狭く */
+  gap: 12px; /* 間隔はやや狭め */
 }
 .choice-button {
   padding: 14px 12px;
@@ -163,19 +152,7 @@ textarea#memo {
   background: #fff;
 }
 
-/* Control buttons (Score / Settings / Next / Exit) */
-#control-buttons {
-  margin-top: 18px;
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-}
-#next-btn {
-  font-size: 1.2rem;
-  padding: 14px 28px;
-}
-
-/* Score Screen */
+/* Score & Settings */
 #score-screen h2, #settings-screen h2 { margin-top: 0; }
 .table-wrap table {
   width: 100%;
@@ -193,36 +170,71 @@ textarea#memo {
   gap: 10px;
   margin-bottom: 10px;
 }
-.score-actions { margin-top: 10px; }
 
-/* Settings Screen */
-.settings-section {
-  margin-top: 16px;
-  padding: 12px;
-  border: 1px solid #ececf4;
-  border-radius: 10px;
-  background: #fafbff;
+/* 常設フッター */
+#global-footer {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: #fff;
+  border-top: 1px solid #ececf4;
+  box-shadow: 0 -4px 16px rgba(0,0,0,.03);
+  padding: 10px;
+  z-index: 30;
 }
-.settings-row {
+.footer-inner {
+  max-width: 960px;
+  margin: 0 auto;
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
-  margin: 8px 0;
-}
-.settings-actions {
-  margin-top: 14px;
-  text-align: right;
+  justify-content: center;
 }
 
-.genre-grid {
+/* モーダル */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px 14px;
-  max-width: 520px;
-  width: 100%;
-  margin: 8px auto 0;
-  text-align: left;
+  place-items: center;
+  z-index: 50;
 }
-.genre-grid label { white-space: nowrap; }
+.modal.hidden { display: none; }
+.modal-content {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  width: min(560px, 92vw);
+  padding: 18px;
+}
+.modal-actions {
+  margin-top: 12px;
+  text-align: right;
+}
+.storage-choices {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 8px 0 6px;
+}
+.file-setup {
+  margin-top: 8px;
+}
+.file-setup-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+#modal-file-status { margin-top: 4px; }
+
+.fake-button {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 0 rgba(0,0,0,.06);
+  cursor: pointer;
+}
 
 .hidden { display: none; }

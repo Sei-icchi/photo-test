@@ -8,37 +8,10 @@
 </head>
 <body>
   <!-- Start Screen -->
-  <div id="start-screen" class="centered">
+  <div id="start-screen" class="card centered">
     <h1>技能検定 問題集</h1>
 
-    <!-- 保存先の初期設定 -->
-    <div class="form-row">
-      <div class="form-label">成績データの保存先:</div>
-      <div class="storage-choices">
-        <label>
-          <input type="radio" name="store" value="local" checked />
-          このブラウザに保存（共有しない）
-        </label>
-        <label>
-          <input type="radio" name="store" value="file" />
-          この端末のファイルに保存（共有しない）
-        </label>
-      </div>
-
-      <!-- ファイル保存モードの操作（File System Access API） -->
-      <div id="file-setup" class="hidden">
-        <div class="file-setup-row">
-          <button id="create-file-btn" type="button">新規ファイルを作成</button>
-          <button id="open-file-btn" type="button">既存ファイルを開く</button>
-        </div>
-        <div id="file-status" class="muted small">未設定</div>
-        <div class="fallback-note small muted">
-          お使いのブラウザでファイル保存が使えない場合は、開始後に「成績」→「エクスポート/インポート」を利用してください。
-        </div>
-      </div>
-    </div>
-
-    <!-- ジャンル選択 -->
+    <!-- ジャンル選択（チェックは既定で全ON） -->
     <div class="form-row">
       <div class="form-label">ジャンルを選択:</div>
       <div class="genre-grid">
@@ -51,7 +24,7 @@
       </div>
     </div>
 
-    <!-- 出題方式（見た目だけ残す／使わない） -->
+    <!-- 出題方式（見た目だけ／ロジックでは使用しない） -->
     <div class="form-row">
       <div class="form-label">出題方式:</div>
       <select id="mode-select" class="narrow-select">
@@ -83,7 +56,7 @@
   </div>
 
   <!-- Score Screen -->
-  <div id="score-screen" class="hidden">
+  <div id="score-screen" class="card hidden">
     <h2>成績一覧</h2>
     <div class="score-actions-top">
       <button id="export-btn" type="button">エクスポート（JSON保存）</button>
@@ -93,14 +66,11 @@
       </label>
     </div>
     <div id="score-table" class="table-wrap"></div>
-    <div class="score-actions">
-      <button type="button" onclick="backToQuiz()">戻る</button>
-    </div>
   </div>
 
-  <!-- Settings Screen (保存先の途中切替) -->
-  <div id="settings-screen" class="hidden">
-    <h2>設定（保存先の切替）</h2>
+  <!-- Settings Screen -->
+  <div id="settings-screen" class="card hidden">
+    <h2>設定</h2>
     <div class="muted small">現在の保存先: <span id="current-store-label">-</span></div>
 
     <div class="settings-section">
@@ -124,8 +94,45 @@
       </div>
     </div>
 
-    <div class="settings-actions">
-      <button id="settings-close-btn" type="button">閉じる</button>
+    <div class="settings-section danger-zone">
+      <h3>成績データをリセット</h3>
+      <p class="small muted">全ての成績データを消去します。実行後は初期画面に戻り、保存先選択ウィンドウを表示します。</p>
+      <button id="reset-results-btn" class="danger" type="button">成績データをリセット</button>
+    </div>
+  </div>
+
+  <!-- 常設フッター（初期画面・出題画面の最下段に常に表示） -->
+  <div id="global-footer">
+    <div class="footer-inner">
+      <button id="footer-settings-btn" type="button">設定</button>
+      <button id="footer-score-btn" type="button">成績</button>
+      <button id="footer-exit-btn" type="button">EXIT</button>
+    </div>
+  </div>
+
+  <!-- 保存先選択モーダル（開始時に成績データが無い場合に表示／リセット後も表示） -->
+  <div id="storage-modal" class="modal hidden" aria-hidden="true" role="dialog" aria-labelledby="storage-title">
+    <div class="modal-content">
+      <h3 id="storage-title">成績データの保存先を選択</h3>
+      <div class="storage-choices">
+        <label><input type="radio" name="store" value="local" checked /> このブラウザに保存（共有しない）</label>
+        <label><input type="radio" name="store" value="file" /> 端末ファイルに保存（共有しない）</label>
+      </div>
+
+      <div id="modal-file-setup" class="file-setup hidden">
+        <div class="file-setup-row">
+          <button id="modal-create-file-btn" type="button">新規ファイルを作成</button>
+          <button id="modal-open-file-btn" type="button">既存ファイルを開く</button>
+        </div>
+        <div id="modal-file-status" class="muted small">未設定</div>
+        <div class="fallback-note small muted">
+          対応しないブラウザでは、成績画面の「エクスポート／インポート」をご利用ください。
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="modal-apply-btn" class="primary" type="button">決定</button>
+      </div>
     </div>
   </div>
 
