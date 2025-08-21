@@ -1,99 +1,68 @@
-/* ========= 設定 ========= */
+// ====== Firebaseからは「問題」だけ取得。成績は端末ローカル保存 or 端末ファイル保存（共有しない） ======
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
+  apiKey: "AIzaSyDcWdByC9LIILR19LlAWAor_VtY2y47kUk",
+  authDomain: "exampractice-d2ed3.firebaseapp.com",
+  databaseURL: "https://exampractice-d2ed3-default-rtdb.firebaseio.com",
+  projectId: "exampractice-d2ed3",
 };
 const DB_URL = firebaseConfig.databaseURL + "/questions.json";
 
-/* ========= アプリ状態 ========= */
+// アプリ状態
 let questions = {};
 let currentQuestion = null;
 let currentGenre = [];
-let questionHistory = {};     // { [id]: { count, correct, confidence, memo } }
+let questionHistory = {};   // { [id]: { count, correct, confidence, memo } }
 let lastServedId = null;
+let storeMode = null;       // "local" | "file"
+let fileHandle = null;
 
-let storeMode = localStorage.getItem("STORE_MODE") || null; // "local" | "file" | null
-let fileHandle = null; // File System Access API ハンドル
-
+// ストレージキー
 const STORAGE_KEY = "quizResults_local_only";
+const PREF_KEY = "quizStoragePreference"; // "local" or "file" を保存
 
-/* ========= File Store ========= */
-const FileStore = {
-  async create() {
-    if (!window.showSaveFilePicker) {
-      alert("このブラウザはファイル保存に未対応です。エクスポート/インポートをご利用ください。");
-      return null;
-    }
-    const handle = await window.showSaveFilePicker({
-      suggestedName: "quiz_results.json",
-      types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
-    });
-    await this.save(handle, {});
-    return handle;
-  },
-  async open() {
-    if (!window.showOpenFilePicker) {
-      alert("このブラウザはファイル読み込みに未対応です。インポートをご利用ください。");
-      return null;
-    }
-    const [handle] = await window.showOpenFilePicker({
-      types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
-    });
-    return handle || null;
-  },
-  async save(handle, data) {
-    const writable = await handle.createWritable();
-    await writable.write(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
-    await writable.close();
-  },
-  async load(handle) {
-    const f = await handle.getFile();
-    const text = await f.text();
-    return JSON.parse(text);
-  },
-  async name(handle){ try{return handle.name||"選択済み"}catch{return"選択済み"} }
-};
-
-/* ========= Result Store ========= */
+// ===== 保存実装 =====
 const ResultStore = {
-  async bootstrapStorage() {
-    const existsLocal = !!localStorage.getItem(STORAGE_KEY);
-    const hasMode = !!storeMode;
-    if (!hasMode && !existsLocal) {
-      openStorageModal(); // 成績無し＆未設定 → モーダルで保存先選択
-      return false;
-    }
-    if (!storeMode && existsLocal) { // 既存ローカルがあれば local と判断
-      storeMode = "local";
-      localStorage.setItem("STORE_MODE", storeMode);
-    }
-    await this.loadToMemory();
-    return true;
-  },
+  async initByPreference() {
+    // 事前に選択済みならそれに従ってロード
+    storeMode = localStorage.getItem(PREF_KEY) || null;
 
-  async loadToMemory() {
+    if (!storeMode) {
+      // 未設定 → モーダル表示で設定させる
+      openStorageModal();
+      throw new Error("Storage preference not set");
+    }
+
     if (storeMode === "file") {
-      if (!fileHandle) { questionHistory = {}; return; }
-      try { questionHistory = await FileStore.load(fileHandle) || {}; }
-      catch { questionHistory = {}; }
+      if (!fileHandle) {
+        // ファイルハンドルがない → モーダルで再選択させる
+        openStorageModal();
+        throw new Error("No file handle");
+      }
+      try {
+        questionHistory = await FileStore.load(fileHandle) || {};
+      } catch {
+        questionHistory = {};
+      }
     } else {
+      // local
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         questionHistory = raw ? JSON.parse(raw) : {};
-      } catch { questionHistory = {}; }
+      } catch {
+        questionHistory = {};
+      }
     }
   },
 
   async save() {
     if (storeMode === "file") {
       if (!fileHandle) {
-        alert("ファイル保存が未設定です。『設定』からファイルを選んでください。");
+        // 保存先が未確定 → モーダル
+        openStorageModal();
         return;
       }
       await FileStore.save(fileHandle, questionHistory);
-    } else {
+    } else if (storeMode === "local") {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(questionHistory));
     }
   },
@@ -101,8 +70,11 @@ const ResultStore = {
   async exportJSON() {
     const blob = new Blob([JSON.stringify(questionHistory, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement("a"), { href:url, download:"quiz_results.json" });
-    a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "quiz_results.json";
+    a.click();
+    URL.revokeObjectURL(url);
   },
 
   async importJSON(file) {
@@ -119,58 +91,110 @@ const ResultStore = {
 
   async switchToLocalReplace() {
     storeMode = "local";
-    localStorage.setItem("STORE_MODE", storeMode);
+    localStorage.setItem(PREF_KEY, "local");
     localStorage.setItem(STORAGE_KEY, JSON.stringify(questionHistory));
-    updateCurrentStoreLabel();
     alert("ブラウザ保存に切り替えました（現在の成績で置き換え）。");
+    updateCurrentStoreLabel();
   },
 
   async switchToFileReplace(selectedHandle) {
-    if (!selectedHandle) { alert("ファイルを選択してください。"); return; }
+    if (!selectedHandle) {
+      alert("ファイルを選択してください。");
+      return;
+    }
     fileHandle = selectedHandle;
     storeMode = "file";
-    localStorage.setItem("STORE_MODE", storeMode);
+    localStorage.setItem(PREF_KEY, "file");
     await FileStore.save(fileHandle, questionHistory);
-    updateCurrentStoreLabel();
     alert("ファイル保存に切り替えました（現在の成績で置き換え）。");
+    updateCurrentStoreLabel();
   },
 
   async loadFromFileReplace(selectedHandle) {
-    if (!selectedHandle) { alert("ファイルを選択してください。"); return; }
+    if (!selectedHandle) {
+      alert("ファイルを選択してください。");
+      return;
+    }
     fileHandle = selectedHandle;
     const data = await FileStore.load(fileHandle);
     questionHistory = data || {};
     await this.save();
-    updateCurrentStoreLabel();
     alert("ファイルから読み込み、現在の成績を置き換えました。");
+    updateCurrentStoreLabel();
   },
 
   async resetAll() {
+    // すべての成績データを削除し初期化、保存先設定もクリア
     questionHistory = {};
     localStorage.removeItem(STORAGE_KEY);
-    if (storeMode === "file" && fileHandle) {
-      await FileStore.save(fileHandle, {});
-    }
+    localStorage.removeItem(PREF_KEY);
+    fileHandle = null;
     storeMode = null;
-    localStorage.removeItem("STORE_MODE");
+    // 画面遷移：初期画面へ戻し、保存先モーダルを開く
+    document.getElementById("settings-screen").classList.add("hidden");
+    document.getElementById("score-screen").classList.add("hidden");
+    document.getElementById("quiz-screen").classList.add("hidden");
+    document.getElementById("start-screen").classList.remove("hidden");
+    openStorageModal();
   }
 };
 
-/* ========= 画面初期化 ========= */
-document.addEventListener("DOMContentLoaded", async () => {
-  showFooter(false); // 初期状態で非表示
+// File System Access API
+const FileStore = {
+  async create() {
+    if (!window.showSaveFilePicker) {
+      alert("このブラウザはファイル保存の新方式に未対応です。エクスポート/インポートをご利用ください。");
+      return null;
+    }
+    const handle = await window.showSaveFilePicker({
+      suggestedName: "quiz_results.json",
+      types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+    });
+    await this.save(handle, {});
+    return handle;
+  },
+  async open() {
+    if (!window.showOpenFilePicker) {
+      alert("このブラウザはファイル読み込みの新方式に未対応です。インポートをご利用ください。");
+      return null;
+    }
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+    });
+    return handle || null;
+  },
+  async save(handle, data) {
+    const writable = await handle.createWritable();
+    await writable.write(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    await writable.close();
+  },
+  async load(handle) {
+    const file = await handle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  },
+  async name(handle) {
+    try { return handle.name || "選択済み"; } catch { return "選択済み"; }
+  }
+};
 
-  // ストレージ状態チェック
-  await ResultStore.bootstrapStorage();
+// ===== 画面イベント =====
+document.addEventListener("DOMContentLoaded", () => {
+  // 起動時：保存先が未設定 or 保存データが無ければモーダルを出す
+  const pref = localStorage.getItem(PREF_KEY);
+  const hasLocal = !!localStorage.getItem(STORAGE_KEY);
+  if (!pref && !hasLocal) {
+    openStorageModal();
+  }
 
-  // モーダル：ラジオでUI切替
-  document.querySelectorAll('input[name="store-modal"]').forEach(r => {
+  // モーダル内のラジオ切り替えでファイル操作UIの表示切替
+  document.querySelectorAll('#storage-modal input[name="store"]').forEach(r => {
     r.addEventListener("change", () => {
-      const isFile = r.value === "file" && r.checked;
-      document.getElementById("modal-file-setup").classList.toggle("hidden", !isFile);
+      document.getElementById("modal-file-setup").classList.toggle("hidden", r.value !== "file");
     });
   });
-  // モーダル：新規/既存
+
+  // モーダル：ファイル作成/既存選択
   document.getElementById("modal-create-file-btn")?.addEventListener("click", async () => {
     const h = await FileStore.create();
     if (h) {
@@ -185,27 +209,24 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("modal-file-status").textContent = `保存先: ${await FileStore.name(h)}`;
     }
   });
-  // モーダル：決定
-  document.getElementById("storage-confirm-btn")?.addEventListener("click", async () => {
-    const selected = document.querySelector('input[name="store-modal"]:checked')?.value || "local";
+
+  // モーダル：保存先確定
+  document.getElementById("modal-save-store-btn")?.addEventListener("click", async () => {
+    const selected = document.querySelector('#storage-modal input[name="store"]:checked')?.value || "local";
     if (selected === "file" && !fileHandle) {
-      alert("ファイル保存を選ぶ場合は『新規ファイルを作成』または『既存ファイルを開く』を実行してください。");
+      alert("ファイル保存を選んだ場合は、ファイルを作成または選択してください。");
       return;
     }
     storeMode = selected;
-    localStorage.setItem("STORE_MODE", storeMode);
-    await ResultStore.loadToMemory();
+    localStorage.setItem(PREF_KEY, storeMode);
     closeStorageModal();
   });
 
-  // 成績：エクスポート/インポート/戻る
+  // 成績画面：エクスポート/インポート
   document.getElementById("export-btn")?.addEventListener("click", () => ResultStore.exportJSON());
   document.getElementById("import-input")?.addEventListener("change", async (ev) => {
     const f = ev.target.files?.[0];
     if (f) await ResultStore.importJSON(f);
-  });
-  document.getElementById("back-to-quiz-btn")?.addEventListener("click", () => {
-    showOnly("quiz"); // ここでフッター復活
   });
 
   // 設定画面イベント
@@ -227,84 +248,93 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
   document.getElementById("switch-to-file-btn")?.addEventListener("click", async () => {
-    if (!fileHandle) { alert("ファイルを選択してください。"); return; }
+    if (!fileHandle) return alert("ファイルを選択してください。");
     await ResultStore.switchToFileReplace(fileHandle);
   });
   document.getElementById("load-from-file-btn")?.addEventListener("click", async () => {
-    if (!fileHandle) { alert("ファイルを選択してください。"); return; }
+    if (!fileHandle) return alert("ファイルを選択してください。");
     await ResultStore.loadFromFileReplace(fileHandle);
   });
   document.getElementById("reset-results-btn")?.addEventListener("click", async () => {
-    if (!confirm("本当に成績データをリセットしますか？")) return;
-    await ResultStore.resetAll();
-    // 初期画面に戻して、保存先選択モーダルを表示
-    showOnly("start");
-    openStorageModal();
+    if (confirm("本当に全成績をリセットしますか？")) {
+      await ResultStore.resetAll();
+    }
+  });
+  document.getElementById("settings-close-btn")?.addEventListener("click", () => {
+    document.getElementById("settings-screen").classList.add("hidden");
+    document.getElementById("quiz-screen").classList.remove("hidden");
+    showGlobalControls(true);
+  });
+
+  // 常設コントロールのイベント（クイズ画面用）
+  document.getElementById("score-btn")?.addEventListener("click", () => {
+    showGlobalControls(false);
+    showScore();
+  });
+  document.getElementById("settings-btn")?.addEventListener("click", () => {
+    showSettings();
+  });
+  document.getElementById("exit-btn")?.addEventListener("click", () => {
+    document.getElementById("quiz-screen").classList.add("hidden");
+    document.getElementById("score-screen").classList.add("hidden");
+    document.getElementById("settings-screen").classList.add("hidden");
+    document.getElementById("start-screen").classList.remove("hidden");
+    showGlobalControls(false);
   });
 });
 
-/* ========= Start ========= */
+// スタート
 document.getElementById("start-btn").addEventListener("click", async () => {
-  if (!storeMode) { openStorageModal(); return; }
+  try {
+    await ResultStore.initByPreference(); // 保存先設定が未完了ならここでモーダルが出る
+  } catch {
+    return; // 設定完了後に再度スタートを押してもらう
+  }
 
-  // ジャンル
+  // ジャンル選択
   const checkboxes = document.querySelectorAll("input[type=checkbox]:checked");
   currentGenre = Array.from(checkboxes).map(cb => cb.value);
-  if (currentGenre.length === 0) { alert("ジャンルを1つ以上選択してください"); return; }
-
-  // 問題取得（REST）
-  try {
-    const qRes = await fetch(DB_URL, { cache: "no-store" });
-    questions = await qRes.json();
-  } catch {
-    alert("問題データの取得に失敗しました。databaseURL を確認してください。");
+  if (currentGenre.length === 0) {
+    alert("ジャンルを1つ以上選択してください");
     return;
   }
 
-  lastServedId = null;
-  showOnly("quiz");  // ここでフッターも表示
-  showNextQuestion();
-});
-
-/* ========= フッター常設 ========= */
-document.getElementById("footer-score-btn").addEventListener("click", () => {
-  buildScoreTable();
-  showOnly("score"); // 成績画面ではフッターを無効化（非表示）
-});
-document.getElementById("footer-settings-btn").addEventListener("click", () => {
-  updateCurrentStoreLabel();
-  showOnly("settings"); // 設定画面ではフッター表示のまま
-});
-document.getElementById("footer-next-btn").addEventListener("click", async () => {
-  if (!currentQuestion) return;
-  const memoInput = document.getElementById("memo");
-  if (memoInput) {
-    if (!questionHistory[currentQuestion.id]) questionHistory[currentQuestion.id] = {};
-    questionHistory[currentQuestion.id].memo = memoInput.value;
+  // 問題データの読込
+  try {
+    const qRes = await fetch(DB_URL, { cache: "no-store" });
+    questions = await qRes.json();
+  } catch (e) {
+    alert("問題データの取得に失敗しました。databaseURL をご確認ください。");
+    return;
   }
-  await ResultStore.save();
+
+  document.getElementById("start-screen").classList.add("hidden");
+  document.getElementById("quiz-screen").classList.remove("hidden");
+  showGlobalControls(true);
+
+  lastServedId = null;
   showNextQuestion();
 });
-document.getElementById("footer-exit-btn").addEventListener("click", () => {
-  showOnly("start"); // 開始画面ではフッター非表示
-});
 
-/* ========= 出題ロジック ========= */
-function idToNum(id){
-  const n = parseInt(String(id).replace(/^0+/,''),10);
+// ===== 出題ロジック（ID順ベース＋未出題/少出題優先） =====
+function idToNum(id) {
+  const n = parseInt(String(id).replace(/^0+/, ''), 10);
   return isNaN(n) ? Number.MAX_SAFE_INTEGER : n;
 }
 
-// ID順ベース＋未出題/少出題を優先
-function showNextQuestion(){
+function showNextQuestion() {
   const all = Object.values(questions || {});
   let candidates = all.filter(q => currentGenre.includes(q.genre));
-  if (candidates.length === 0) { alert("対象の問題がありません。"); return; }
+  if (candidates.length === 0) {
+    alert("対象の問題がありません。");
+    return;
+  }
 
-  const withCount = candidates.map(q => ({ q, count:(questionHistory[q.id]?.count || 0) }));
+  const withCount = candidates.map(q => ({ q, count: (questionHistory[q.id]?.count || 0) }));
   const minCount = Math.min(...withCount.map(x => x.count));
   let minGroup = withCount.filter(x => x.count === minCount).map(x => x.q);
-  minGroup.sort((a,b) => idToNum(a.id) - idToNum(b.id));
+
+  minGroup.sort((a, b) => idToNum(a.id) - idToNum(b.id));
 
   let next = null;
   if (lastServedId !== null) {
@@ -319,153 +349,173 @@ function showNextQuestion(){
   displayQuestion();
 }
 
-function displayQuestion(){
+function displayQuestion() {
   const q = currentQuestion;
   document.getElementById("question-container").innerText = q.question;
 
   // 選択肢
-  let keys = ["c1","c2","c3","c4"];
-  if (q.c1 === "◯") keys = ["c1","c2"]; // c1が◯ならc3/c4は非表示
-  const order = (q.c1 === "◯") ? keys : shuffle(keys);
+  let choices = ["c1", "c2", "c3", "c4"];
+  if (q.c1 === "◯") choices = ["c1", "c2"]; // c1が◯ならc3, c4非表示
 
-  const box = document.getElementById("choices-container");
-  box.innerHTML = "";
-  order.forEach(k => {
+  // c1が◯のときは順序固定／それ以外は表示順だけシャッフル
+  const displayChoices = (q.c1 === "◯") ? choices : shuffle(choices);
+
+  // 描画
+  const container = document.getElementById("choices-container");
+  container.innerHTML = "";
+  displayChoices.forEach(key => {
+    const text = q[key] || "[選択肢未設定]";
     const btn = document.createElement("button");
     btn.className = "choice-button";
-    btn.dataset.key = k;
-    btn.textContent = q[k] || "[選択肢未設定]";
-    btn.onclick = () => handleAnswer(k, btn);
-    box.appendChild(btn);
+    btn.dataset.key = key;
+    btn.textContent = text;
+    btn.onclick = () => handleAnswer(key, btn);
+    container.appendChild(btn);
   });
 
   // 初期化
   document.getElementById("feedback").classList.add("hidden");
-  document.getElementById("confidence-container").classList.add("hidden");
-  const memo = document.getElementById("memo");
-  memo.value = questionHistory[q.id]?.memo || "";
+
+  // メモ復元
+  const memoInput = document.getElementById("memo");
+  memoInput.value = questionHistory[q.id]?.memo || "";
 
   // 自信度復元（回答回数0なら無色）
   const saved = questionHistory[q.id];
   const savedConfidence = saved?.confidence;
   const savedCount = saved?.count || 0;
-  document.querySelectorAll(".confidence").forEach(b=>{
-    b.classList.remove("selected");
-    if (savedCount > 0 && b.dataset.level === savedConfidence) b.classList.add("selected");
+  document.querySelectorAll(".confidence").forEach(btn => {
+    btn.classList.remove("selected");
+    if (savedCount > 0 && btn.dataset.level === savedConfidence) {
+      btn.classList.add("selected");
+    }
   });
 
-  // NEXTは自信度未選択なら無効
-  const nextBtn = document.getElementById("footer-next-btn");
+  // NEXT 有効/無効
+  const nextBtn = document.getElementById("next-btn");
   nextBtn.disabled = !(savedConfidence && savedCount > 0);
 }
 
-function handleAnswer(selectedKey, button){
+function handleAnswer(selectedKey, button) {
   const isCorrect = selectedKey === currentQuestion.answer;
 
-  // ボタンロック＆色付け
+  // ボタン固定 & 色付け
   const buttons = document.querySelectorAll(".choice-button");
-  buttons.forEach(b => b.disabled = true);
-  buttons.forEach(b=>{
-    if (b.dataset.key === currentQuestion.answer) b.classList.add("correct");
-    else if (b === button && !isCorrect) b.classList.add("incorrect");
+  buttons.forEach(btn => btn.disabled = true);
+  buttons.forEach(btn => {
+    if (btn.dataset.key === currentQuestion.answer) {
+      btn.classList.add("correct");
+    } else if (btn === button && !isCorrect) {
+      btn.classList.add("incorrect");
+    }
   });
 
-  // フィードバック・自信度
-  document.getElementById("feedback").classList.remove("hidden");
-  document.getElementById("feedback").innerText = isCorrect ? "正解！" : "不正解！";
-  document.getElementById("confidence-container").classList.remove("hidden");
+  // フィードバック
+  const fb = document.getElementById("feedback");
+  fb.classList.remove("hidden");
+  fb.innerText = isCorrect ? "正解！" : "不正解！";
 
   // 履歴更新
   if (!questionHistory[currentQuestion.id]) questionHistory[currentQuestion.id] = {};
-  questionHistory[currentQuestion.id].correct = isCorrect;
+  questionHistory[currentQuestion.id].correct = isCorrect; // 直近
   questionHistory[currentQuestion.id].count = (questionHistory[currentQuestion.id].count || 0) + 1;
 
-  // 自信度選択で NEXT 解放＆保存
-  document.querySelectorAll(".confidence").forEach(b=>{
-    b.onclick = async ()=>{
-      questionHistory[currentQuestion.id].confidence = b.dataset.level;
-      document.querySelectorAll(".confidence").forEach(x=>x.classList.remove("selected"));
-      b.classList.add("selected");
-      document.getElementById("footer-next-btn").disabled = false;
+  // 自信度選択で色付け＆NEXT解放＆保存
+  document.querySelectorAll(".confidence").forEach(btn => {
+    btn.onclick = async () => {
+      questionHistory[currentQuestion.id].confidence = btn.dataset.level;
+      document.querySelectorAll(".confidence").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      document.getElementById("next-btn").disabled = false;
       await ResultStore.save();
     };
   });
 
+  // 回答直後の保存
   ResultStore.save();
 }
 
-/* ========= 成績 ========= */
-function buildScoreTable(){
+// 選択肢シャッフル（出題抽選には不使用）
+function shuffle(array) {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// 成績一覧
+function showScore() {
+  const scoreScreen = document.getElementById("score-screen");
   const scoreTable = document.getElementById("score-table");
   scoreTable.innerHTML = "";
 
   const table = document.createElement("table");
   const header = document.createElement("tr");
-  ["ID","問題","出題回数","正解数(直近)","自信度","メモ"].forEach(t=>{
-    const th = document.createElement("th"); th.innerText = t; header.appendChild(th);
+  ["ID", "問題", "出題回数", "正解数(直近)", "自信度", "メモ"].forEach(text => {
+    const th = document.createElement("th");
+    th.innerText = text;
+    header.appendChild(th);
   });
   table.appendChild(header);
 
-  Object.keys(questionHistory).sort((a,b)=>idToNum(a)-idToNum(b)).forEach(id=>{
-    const q = questions[id]; const h = questionHistory[id]; if (!q || !h) return;
-    const tr = document.createElement("tr");
-    const correctCount = h.correct ? 1 : 0;
-    [id, q.question, h.count||0, correctCount, h.confidence||"", h.memo||""].forEach(val=>{
-      const td = document.createElement("td"); td.innerText = val; tr.appendChild(td);
+  Object.keys(questionHistory)
+    .sort((a, b) => idToNum(a) - idToNum(b))
+    .forEach(id => {
+      const q = questions[id];
+      const h = questionHistory[id];
+      if (!q || !h) return;
+      const tr = document.createElement("tr");
+      const correctCount = h.correct ? 1 : 0; // 直近正誤（必要なら累計に拡張）
+      [id, q.question, h.count || 0, correctCount, h.confidence || "", h.memo || ""].forEach(val => {
+        const td = document.createElement("td");
+        td.innerText = val;
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
     });
-    table.appendChild(tr);
-  });
 
-  scoreTable.appendChild(table);
-}
-
-/* ========= ユーティリティ ========= */
-function shuffle(arr){
-  const a = [...arr];
-  for (let i=a.length-1;i>0;i--){
-    const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i+1);
-    [a[i],a[j]]=[a[j],a[i]];
-  }
-  return a;
-}
-
-function showOnly(which){
-  // 画面切替
-  document.getElementById("start-screen").classList.add("hidden");
   document.getElementById("quiz-screen").classList.add("hidden");
+  scoreScreen.classList.remove("hidden");
+  showGlobalControls(false);
+}
+
+function backToQuiz() {
   document.getElementById("score-screen").classList.add("hidden");
-  document.getElementById("settings-screen").classList.add("hidden");
+  document.getElementById("quiz-screen").classList.remove("hidden");
+  showGlobalControls(true);
+}
 
-  if (which==="start") document.getElementById("start-screen").classList.remove("hidden");
-  if (which==="quiz") document.getElementById("quiz-screen").classList.remove("hidden");
-  if (which==="score") document.getElementById("score-screen").classList.remove("hidden");
-  if (which==="settings") document.getElementById("settings-screen").classList.remove("hidden");
-
-  // フッター表示制御：
-  // - start: 非表示
-  // - quiz: 表示
-  // - settings: 表示
-  // - score: 非表示（ご要望）
-  if (which === "quiz" || which === "settings") {
-    showFooter(true);
-  } else {
-    showFooter(false);
+// 設定画面
+function showSettings() {
+  updateCurrentStoreLabel();
+  document.getElementById("quiz-screen").classList.add("hidden");
+  document.getElementById("settings-screen").classList.remove("hidden");
+  showGlobalControls(false);
+}
+function updateCurrentStoreLabel() {
+  const label = document.getElementById("current-store-label");
+  label.textContent = storeMode === "file" ? "端末ファイル保存" : (storeMode === "local" ? "ブラウザ保存" : "未設定");
+  const status = document.getElementById("settings-file-status");
+  if (storeMode === "file" && fileHandle) {
+    FileStore.name(fileHandle).then(name => status.textContent = `保存先: ${name}`);
   }
 }
 
-function showFooter(show){
-  document.getElementById("app-footer").classList.toggle("hidden", !show);
+// グローバルコントロールの表示切替（クイズ画面のみ表示）
+function showGlobalControls(show) {
+  document.getElementById("global-controls").style.display = show ? "flex" : "none";
 }
 
-function openStorageModal(){
-  document.getElementById("storage-modal").classList.remove("hidden");
-  const selected = document.querySelector('input[name="store-modal"]:checked')?.value || "local";
-  document.getElementById("modal-file-setup").classList.toggle("hidden", selected!=="file");
+// 保存先モーダル
+function openStorageModal() {
+  const modal = document.getElementById("storage-modal");
+  modal.classList.remove("hidden");
+  // 初期値：local選択
+  modal.querySelector('input[value="local"]').checked = true;
+  document.getElementById("modal-file-setup").classList.add("hidden");
 }
-function closeStorageModal(){
+function closeStorageModal() {
   document.getElementById("storage-modal").classList.add("hidden");
-}
-function updateCurrentStoreLabel(){
-  const label = document.getElementById("current-store-label");
-  label.textContent = storeMode === "file" ? "端末ファイル保存" : "ブラウザ保存";
 }
