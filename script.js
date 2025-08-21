@@ -5,6 +5,7 @@ const firebaseConfig = {
   databaseURL: "https://exampractice-d2ed3-default-rtdb.firebaseio.com",
   projectId: "exampractice-d2ed3",
 };
+
 const DB_URL = firebaseConfig.databaseURL + "/questions.json";
 
 // アプリ状態
@@ -187,11 +188,9 @@ document.addEventListener("DOMContentLoaded", () => {
     openStorageModal();
   }
 
-  // モーダル内のラジオ切り替えでファイル操作UIの表示切替
+  // ===== モーダル：保存先ラジオの切替でUI更新 =====
   document.querySelectorAll('#storage-modal input[name="store"]').forEach(r => {
-    r.addEventListener("change", () => {
-      document.getElementById("modal-file-setup").classList.toggle("hidden", r.value !== "file");
-    });
+    r.addEventListener("change", updateStorageModalUI);
   });
 
   // モーダル：ファイル作成/既存選択
@@ -200,6 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (h) {
       fileHandle = h;
       document.getElementById("modal-file-status").textContent = `保存先: ${await FileStore.name(h)}`;
+      updateStorageModalUI();
     }
   });
   document.getElementById("modal-open-file-btn")?.addEventListener("click", async () => {
@@ -207,18 +207,41 @@ document.addEventListener("DOMContentLoaded", () => {
     if (h) {
       fileHandle = h;
       document.getElementById("modal-file-status").textContent = `保存先: ${await FileStore.name(h)}`;
+      updateStorageModalUI();
     }
   });
 
   // モーダル：保存先確定
   document.getElementById("modal-save-store-btn")?.addEventListener("click", async () => {
     const selected = document.querySelector('#storage-modal input[name="store"]:checked')?.value || "local";
+
+    // file のときはファイル必須
     if (selected === "file" && !fileHandle) {
       alert("ファイル保存を選んだ場合は、ファイルを作成または選択してください。");
       return;
     }
+
+    // 設定反映
     storeMode = selected;
     localStorage.setItem(PREF_KEY, storeMode);
+
+    // 初期データの用意（任意：空を書いておく）
+    if (storeMode === "local") {
+      if (!localStorage.getItem(STORAGE_KEY)) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({}));
+      }
+    } else if (storeMode === "file" && fileHandle) {
+      try {
+        const existing = await FileStore.load(fileHandle);
+        if (!existing || typeof existing !== "object") {
+          await FileStore.save(fileHandle, {});
+        }
+      } catch {
+        await FileStore.save(fileHandle, {});
+      }
+    }
+
+    // UI を閉じる
     closeStorageModal();
   });
 
@@ -508,13 +531,38 @@ function showGlobalControls(show) {
   document.getElementById("global-controls").style.display = show ? "flex" : "none";
 }
 
+// === 追加：モーダルのボタン活性/表示切替 ===
+function updateStorageModalUI() {
+  const selected = document.querySelector('#storage-modal input[name="store"]:checked')?.value || "local";
+  const fileSetup = document.getElementById("modal-file-setup");
+  const saveBtn = document.getElementById("modal-save-store-btn");
+
+  // file 選択時のみファイル操作UIを表示
+  fileSetup.classList.toggle("hidden", selected !== "file");
+
+  // file 選択かつ fileHandle 未設定なら決定ボタンを無効化
+  if (selected === "file" && !fileHandle) {
+    saveBtn.disabled = true;
+  } else {
+    saveBtn.disabled = false;
+  }
+}
+
 // 保存先モーダル
 function openStorageModal() {
   const modal = document.getElementById("storage-modal");
   modal.classList.remove("hidden");
-  // 初期値：local選択
-  modal.querySelector('input[value="local"]').checked = true;
+
+  // デフォルト local にセット
+  const localRadio = modal.querySelector('input[value="local"]');
+  if (localRadio) localRadio.checked = true;
+
+  // ファイル UI 初期化
+  document.getElementById("modal-file-status").textContent = "未設定";
   document.getElementById("modal-file-setup").classList.add("hidden");
+
+  // 決定ボタン活性制御
+  updateStorageModalUI();
 }
 function closeStorageModal() {
   document.getElementById("storage-modal").classList.add("hidden");
