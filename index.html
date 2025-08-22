@@ -25,9 +25,9 @@
 
     <div class="form-row">
       <div class="form-label">出題方式:</div>
-      <!-- ボックスは残す（ロジックは使用しない・注記も表示しない） -->
+      <!-- ボックスは残す（ロジックでは使用しない） -->
       <select id="mode-select" class="narrow-select">
-        <option value="balanced"> </option>
+        <option value="balanced"></option>
       </select>
     </div>
 
@@ -47,7 +47,7 @@
         <button class="confidence" data-level="低" type="button">低</button>
         <button class="confidence" data-level="中" type="button">中</button>
         <button class="confidence" data-level="高" type="button">高</button>
-        <span id="confidence-note" class="confidence-note">（必ずチェックする）</span>
+        <span class="must-check">(必ずチェックする)</span>
       </div>
       <textarea id="memo" placeholder="メモを入力..."></textarea>
       <!-- コントロールボタンはJSで都度再生成（重複防止のため） -->
@@ -58,18 +58,18 @@
   <div id="score-screen" class="hidden">
     <h2>成績一覧</h2>
     <div id="score-table" class="table-wrap"></div>
-    <!-- スクロールしても付いてくる戻るボタン -->
-    <button id="floating-back" class="floating-back" type="button" onclick="backToQuiz()">戻る</button>
+    <!-- 丸いフローティング戻るボタン -->
+    <button type="button" class="sticky-back" onclick="backToQuiz()">戻る</button>
   </div>
 
   <!-- 設定モーダル -->
-  <div id="settings-modal" class="modal hidden">
-    <div class="modal-content">
+  <div id="settings-overlay" class="hidden overlay">
+    <div class="modal">
       <h3>設定</h3>
-      <p>この端末に保存された成績データ（localStorage）をリセットします。よろしいですか？</p>
+      <p>この端末に保存されている成績データ（localStorage）をリセットします。よろしいですか？</p>
       <div class="modal-actions">
-        <button id="reset-confirm" class="danger">リセットする</button>
-        <button id="reset-cancel">キャンセル</button>
+        <button id="modal-cancel">キャンセル</button>
+        <button id="modal-reset" class="danger">リセットする</button>
       </div>
     </div>
   </div>

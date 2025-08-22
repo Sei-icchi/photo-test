@@ -1,4 +1,4 @@
-// ====== Firebase(問題のみ) + localStorage(成績) 版 ======
+// ====== 質問データはFirebase / 成績データはlocalStorage（端末のみ保存・共有なし） ======
 const firebaseConfig = {
   apiKey: "AIzaSyDcWdByC9LIILR19LlAWAor_VtY2y47kUk",
   authDomain: "exampractice-d2ed3.firebaseapp.com",
@@ -16,16 +16,13 @@ let currentGenre = [];
 let questionHistory = {};
 let lastServedId = null; // 最小回数グループ内の巡回用
 
-// 起動時にlocalStorageから成績を読み込む（ユーザー名は使わない）
+// 起動時にlocalStorageから成績を読み込む
 loadResults();
 
 document.getElementById("start-btn").addEventListener("click", async () => {
   // モード選択ボックスは残すが、ロジックでは使用しない（無視）
   const modeSelect = document.getElementById("mode-select");
-  if (modeSelect) {
-    // 表示だけ残す。中身は空。
-    modeSelect.value = "balanced";
-  }
+  if (modeSelect) modeSelect.value = "balanced";
 
   const checkboxes = document.querySelectorAll("input[type=checkbox]:checked");
   currentGenre = Array.from(checkboxes).map(cb => cb.value);
@@ -52,12 +49,8 @@ document.getElementById("start-btn").addEventListener("click", async () => {
 
 // 設定モーダル制御
 document.addEventListener("click", (e) => {
-  if (e.target && e.target.id === "modal-cancel") {
-    closeSettingsModal();
-  }
-  if (e.target && e.target.id === "modal-reset") {
-    resetResults();
-  }
+  if (e.target && e.target.id === "modal-cancel") closeSettingsModal();
+  if (e.target && e.target.id === "modal-reset") resetResults();
 });
 
 // "001" -> 1 のようにIDを数値化して比較順を安定化

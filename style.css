@@ -145,7 +145,7 @@ textarea#memo {
   background: #fff;
 }
 
-/* Control buttons (「次の問題」「成績」「設定」「ホーム」) */
+/* Control buttons（順：次の問題・成績・設定・ホーム） */
 #control-buttons {
   margin-top: 18px;
   display: flex;
@@ -179,18 +179,25 @@ textarea#memo {
 }
 .table-wrap th { background: #f7f8ff; }
 
-/* スクロールしても付いてくる戻るボタン（固定表示） */
+/* 丸いフローティング戻るボタン（常に画面右下） */
 .sticky-back {
   position: fixed;
   right: 20px;
   bottom: 20px;
-  padding: 12px 16px;
+  width: 64px;
+  height: 64px;
   background: var(--primary);
   color: #fff;
-  border-radius: 999px;
-  box-shadow: 0 8px 16px rgba(0,0,0,.15);
+  border-radius: 50%;
+  box-shadow: 0 8px 16px rgba(0,0,0,.18);
   z-index: 1000;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: .02em;
 }
+.sticky-back:hover { transform: translateY(-1px); }
 
 /* 設定モーダル */
 .overlay {
