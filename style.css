@@ -139,6 +139,11 @@ button.danger {
   color: #fff;
   border-color: transparent;
 }
+.confidence-note {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: .9em;
+}
 
 textarea#memo {
   width: 100%;
@@ -151,7 +156,7 @@ textarea#memo {
   background: #fff;
 }
 
-/* Control buttons (成績 / Next / Exit / 設定) */
+/* Control buttons (次の問題 / 成績 / 設定 / ホーム) */
 #control-buttons {
   margin-top: 18px;
   display: flex;
@@ -159,8 +164,8 @@ textarea#memo {
   gap: 14px;
 }
 #next-btn {
-  font-size: 1.2rem;
-  padding: 14px 28px;
+  font-size: 1.3rem;
+  padding: 16px 32px;
 }
 
 /* Score Screen */

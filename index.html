@@ -25,7 +25,7 @@
 
     <div class="form-row">
       <div class="form-label">出題方式:</div>
-      <!-- ボックスは残すがロジックは使用しない -->
+      <!-- ボックスは残す（ロジックは使用しない・注記も表示しない） -->
       <select id="mode-select" class="narrow-select">
         <option value="balanced"> </option>
       </select>
@@ -47,6 +47,7 @@
         <button class="confidence" data-level="低" type="button">低</button>
         <button class="confidence" data-level="中" type="button">中</button>
         <button class="confidence" data-level="高" type="button">高</button>
+        <span id="confidence-note" class="confidence-note">（必ずチェックする）</span>
       </div>
       <textarea id="memo" placeholder="メモを入力..."></textarea>
       <!-- コントロールボタンはJSで都度再生成（重複防止のため） -->

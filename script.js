@@ -138,49 +138,49 @@ function displayQuestion() {
     }
   });
 
-  // コントロール行を再構築（重複防止）
+  // コントロール行を再構築（重複防止）— 順序: 次の問題 → 成績 → 設定 → ホーム
   const existingControl = document.getElementById("control-buttons");
   if (existingControl) existingControl.remove();
 
   const controlContainer = document.createElement("div");
   controlContainer.id = "control-buttons";
 
-  // 成績（NEXTの左）
+  // 「次の問題」ボタン（先頭・大きめ）
+  const nextBtn = document.createElement("button");
+  nextBtn.id = "next-btn";
+  nextBtn.textContent = "次の問題";
+  nextBtn.disabled = !(savedConfidence && savedCount > 0);
+  nextBtn.onclick = () => {
+    if (!questionHistory[q.id]) questionHistory[q.id] = {};
+    questionHistory[q.id].memo = memoInput.value;
+    saveResult(); // localStorage 保存
+    showNextQuestion();
+  };
+  controlContainer.appendChild(nextBtn);
+
+  // 成績ボタン
   const scoreBtn = document.createElement("button");
   scoreBtn.id = "score-btn";
   scoreBtn.textContent = "成績";
   scoreBtn.onclick = () => showScore();
   controlContainer.appendChild(scoreBtn);
 
-  // NEXT（自信度が未設定なら無効）
-  const nextBtn = document.createElement("button");
-  nextBtn.id = "next-btn";
-  nextBtn.textContent = "Next";
-  nextBtn.disabled = !(savedConfidence && savedCount > 0);
-  nextBtn.onclick = () => {
-    if (!questionHistory[q.id]) questionHistory[q.id] = {};
-    questionHistory[q.id].memo = memoInput.value;
-    saveResult(); // ← localStorage に保存
-    showNextQuestion();
-  };
-  controlContainer.appendChild(nextBtn);
-
-  // EXIT
-  const exitBtn = document.createElement("button");
-  exitBtn.id = "exit-btn";
-  exitBtn.textContent = "Exit";
-  exitBtn.onclick = () => {
-    document.getElementById("quiz-screen").classList.add("hidden");
-    document.getElementById("start-screen").classList.remove("hidden");
-  };
-  controlContainer.appendChild(exitBtn);
-
-  // 設定（成績リセット用モーダル起動）
+  // 設定ボタン
   const settingsBtn = document.createElement("button");
   settingsBtn.id = "settings-btn";
   settingsBtn.textContent = "設定";
   settingsBtn.onclick = openSettings;
   controlContainer.appendChild(settingsBtn);
+
+  // ホーム（Exitの代わり）
+  const homeBtn = document.createElement("button");
+  homeBtn.id = "home-btn";
+  homeBtn.textContent = "ホーム";
+  homeBtn.onclick = () => {
+    document.getElementById("quiz-screen").classList.add("hidden");
+    document.getElementById("start-screen").classList.remove("hidden");
+  };
+  controlContainer.appendChild(homeBtn);
 
   document.getElementById("confidence-container").appendChild(controlContainer);
 
@@ -219,7 +219,7 @@ function handleAnswer(selectedKey, button) {
   questionHistory[currentQuestion.id].correct = isCorrect;
   questionHistory[currentQuestion.id].count = (questionHistory[currentQuestion.id].count || 0) + 1;
 
-  // 自信度：選択で色付け＆NEXT解放
+  // 自信度：選択で色付け＆「次の問題」解放
   document.querySelectorAll(".confidence").forEach(btn => {
     btn.onclick = () => {
       questionHistory[currentQuestion.id].confidence = btn.dataset.level;
@@ -230,7 +230,7 @@ function handleAnswer(selectedKey, button) {
     };
   });
 
-  // 回答直後にも保存（任意：安定のため）
+  // 回答直後にも保存（任意）
   saveResult();
 }
 
@@ -268,49 +268,4 @@ function showScore() {
   });
   table.appendChild(header);
 
-  Object.keys(questionHistory).sort((a, b) => idToNum(a) - idToNum(b)).forEach(id => {
-    const q = questions[id];
-    const h = questionHistory[id];
-    if (!q || !h) return;
-
-    const tr = document.createElement("tr");
-    const correctCount = h.correct ? 1 : 0; // 直近の正誤を1/0表示（必要に応じて拡張可）
-    [id, q.question, h.count || 0, correctCount, h.confidence || "", h.memo || ""].forEach(val => {
-      const td = document.createElement("td");
-      td.innerText = val;
-      tr.appendChild(td);
-    });
-    table.appendChild(tr);
-  });
-
-  scoreTable.appendChild(table);
-  document.getElementById("quiz-screen").classList.add("hidden");
-  scoreScreen.classList.remove("hidden");
-}
-
-function backToQuiz() {
-  document.getElementById("score-screen").classList.add("hidden");
-  document.getElementById("quiz-screen").classList.remove("hidden");
-}
-
-// ---- 設定（モーダル） ----
-function openSettings() {
-  document.getElementById("settings-modal").classList.remove("hidden");
-}
-
-function resetResults() {
-  // localStorage をクリアして初期化
-  try {
-    localStorage.removeItem(LS_KEY);
-  } catch (e) {
-    console.warn("localStorage の削除に失敗:", e);
-  }
-  questionHistory = {};
-  lastServedId = null;
-
-  // 画面遷移：モーダル閉じてスタートへ
-  document.getElementById("settings-modal").classList.add("hidden");
-  document.getElementById("score-screen").classList.add("hidden");
-  document.getElementById("quiz-screen").classList.add("hidden");
-  document.getElementById("start-screen").classList.remove("hidden");
-}
+  Object.keys(questionHistory
