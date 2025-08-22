@@ -13,23 +13,11 @@ html, body { height: 100%; }
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
-  background: --bg;
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
   padding: 16px;
   font-size: 18px; /* スマホで少し大きめ */
-}
-
-.small { font-size: .9rem; }
-.muted { color: var(--muted); }
-.card {
-  max-width: 960px;
-  margin: 6vh auto 0;
-  background: #fff;
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0,0,0,.06);
-  padding: 24px 20px;
 }
 
 /* Start Screen */
@@ -89,14 +77,19 @@ button {
 }
 button:hover { transform: translateY(-1px); }
 button:disabled { opacity: .6; cursor: not-allowed; }
-button.primary { background: var(--primary); color: #fff; }
-button.danger { background: var(--danger); color: #fff; }
+button.primary {
+  background: var(--primary);
+  color: #fff;
+}
+button.danger {
+  background: var(--danger);
+  color: #fff;
+}
 
 /* Quiz Screen */
-#quiz-screen.card { max-width: 960px; }
 .question {
   max-width: 900px;
-  margin: 2em auto;         /* ← 上下に2行分の空間 */
+  margin: 2em auto; /* ← 上下に2行分の空間 */
   font-size: 1.2rem;
   font-weight: 600;
 }
@@ -126,7 +119,7 @@ button.danger { background: var(--danger); color: #fff; }
 
 .confidence-wrap {
   max-width: 900px;
-  margin: 16px auto 80px; /* コントロール固定領域分の下余白 */
+  margin: 16px auto 0;
   padding-bottom: 8px;
 }
 .confidence-row {
@@ -158,23 +151,27 @@ textarea#memo {
   background: #fff;
 }
 
-/* 固定コントロール群（クイズ画面のみ表示） */
-.controls-fixed {
-  position: fixed;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
+/* Control buttons (成績 / Next / Exit / 設定) */
+#control-buttons {
+  margin-top: 18px;
   display: flex;
+  justify-content: center; /* 最下部に中央並び */
   gap: 14px;
-  background: rgba(255,255,255,.9);
-  border: 1px solid #ececf4;
-  padding: 10px 12px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.06);
-  z-index: 50;
+}
+#next-btn {
+  font-size: 1.2rem;
+  padding: 14px 28px;
 }
 
-/* Score / Settings */
+/* Score Screen */
+#score-screen {
+  max-width: 960px;
+  margin: 24px auto 0;
+  background: #fff;
+  padding: 20px;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+}
 .table-wrap table {
   width: 100%;
   border-collapse: collapse;
@@ -186,69 +183,43 @@ textarea#memo {
   text-align: left;
 }
 .table-wrap th { background: #f7f8ff; }
-.score-actions-top {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.score-actions { margin-top: 10px; }
-.settings-section {
-  margin-top: 16px;
-  padding: 12px;
-  border: 1px solid #ececf4;
-  border-radius: 10px;
-  background: #fafbff;
-}
-.settings-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 8px 0;
-}
-.settings-actions {
-  margin-top: 14px;
-  text-align: right;
+
+/* スクロールしても付いてくる戻るボタン（固定配置） */
+.floating-back {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,.15);
 }
 
-/* モーダル */
+/* Modal */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.4);
-  display: grid;
-  place-items: center;
-  z-index: 100;
+  background: rgba(0,0,0,.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 2000;
 }
 .modal .modal-content {
-  width: min(560px, 92vw);
+  width: min(520px, 92vw);
   background: #fff;
-  border-radius: 12px;
-  padding: 18px;
-  box-shadow: 0 12px 28px rgba(0,0,0,.18);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.2);
 }
-.modal-choices {
-  display: grid;
-  gap: 8px;
-  margin: 10px 0 8px;
-}
-.file-setup-row {
+.modal .modal-actions {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
-  margin: 6px 0;
-}
-.modal-actions {
-  margin-top: 10px;
-  text-align: right;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 .hidden { display: none; }
-.fake-button {
-  display: inline-block;
-  padding: 10px 16px;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 2px 0 rgba(0,0,0,.06);
-  cursor: pointer;
-}
-.import-label input[type="file"] { display: none; }

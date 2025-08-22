@@ -11,7 +11,6 @@
   <div id="start-screen" class="centered">
     <h1>技能検定 問題集</h1>
 
-    <!-- ジャンル選択 -->
     <div class="form-row">
       <div class="form-label">ジャンルを選択:</div>
       <div class="genre-grid">
@@ -24,9 +23,9 @@
       </div>
     </div>
 
-    <!-- 出題方式（見た目だけ） -->
     <div class="form-row">
       <div class="form-label">出題方式:</div>
+      <!-- ボックスは残すがロジックは使用しない -->
       <select id="mode-select" class="narrow-select">
         <option value="balanced"> </option>
       </select>
@@ -42,7 +41,7 @@
 
     <div id="feedback" class="hidden feedback"></div>
 
-    <div id="confidence-container" class="confidence-wrap">
+    <div id="confidence-container" class="hidden confidence-wrap">
       <div class="confidence-row">
         <span>自信度:</span>
         <button class="confidence" data-level="低" type="button">低</button>
@@ -50,85 +49,26 @@
         <button class="confidence" data-level="高" type="button">高</button>
       </div>
       <textarea id="memo" placeholder="メモを入力..."></textarea>
-    </div>
-
-    <!-- 常時最下段中央に固定表示するコントロール群（クイズ画面のみ表示） -->
-    <div id="global-controls" class="controls-fixed">
-      <button id="score-btn" type="button">成績</button>
-      <button id="settings-btn" type="button">設定</button>
-      <button id="next-btn" type="button" disabled>Next</button>
-      <button id="exit-btn" type="button">Exit</button>
+      <!-- コントロールボタンはJSで都度再生成（重複防止のため） -->
     </div>
   </div>
 
-  <!-- Score Screen（この画面では global-controls は非表示） -->
-  <div id="score-screen" class="hidden card">
+  <!-- Score Screen -->
+  <div id="score-screen" class="hidden">
     <h2>成績一覧</h2>
-    <div class="score-actions-top">
-      <button id="export-btn" type="button">エクスポート（JSON保存）</button>
-      <label class="import-label">
-        <input id="import-input" type="file" accept="application/json" class="hidden" />
-        <span class="fake-button">インポート（JSON読込）</span>
-      </label>
-    </div>
     <div id="score-table" class="table-wrap"></div>
-    <div class="score-actions">
-      <button type="button" onclick="backToQuiz()">戻る</button>
-    </div>
+    <!-- スクロールしても付いてくる戻るボタン -->
+    <button id="floating-back" class="floating-back" type="button" onclick="backToQuiz()">戻る</button>
   </div>
 
-  <!-- Settings Screen -->
-  <div id="settings-screen" class="hidden card">
-    <h2>設定（保存先の切替・リセット）</h2>
-    <div class="muted small">現在の保存先: <span id="current-store-label">-</span></div>
-
-    <div class="settings-section">
-      <h3>ブラウザ保存（localStorage）に切り替え</h3>
-      <p class="small muted">現在の成績データでブラウザ保存に置き換えます。</p>
-      <button id="switch-to-local-btn" type="button">ブラウザ保存に切り替え（置き換え）</button>
-    </div>
-
-    <div class="settings-section">
-      <h3>端末ファイル保存に切り替え</h3>
-      <div class="settings-row">
-        <button id="settings-create-file-btn" type="button">新規ファイルを作成</button>
-        <button id="settings-open-file-btn" type="button">既存ファイルを開く</button>
-      </div>
-      <div id="settings-file-status" class="muted small">未設定</div>
-      <button id="switch-to-file-btn" type="button">ファイル保存に切り替え（置き換え）</button>
-      <div class="settings-row">
-        <button id="load-from-file-btn" type="button">ファイルから読み込む（現在の成績を置き換え）</button>
-      </div>
-    </div>
-
-    <div class="settings-section danger-zone">
-      <h3>成績データのリセット</h3>
-      <p class="small muted">すべての成績を削除して初期状態に戻します。直後に保存先選択ウィンドウが表示されます。</p>
-      <button id="reset-results-btn" type="button" class="danger">成績をリセット</button>
-    </div>
-
-    <div class="settings-actions">
-      <button id="settings-close-btn" type="button">閉じる</button>
-    </div>
-  </div>
-
-  <!-- 保存先選択モーダル（初回 or リセット後 強制表示） -->
-  <div id="storage-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="storage-modal-title">
+  <!-- 設定モーダル -->
+  <div id="settings-modal" class="modal hidden">
     <div class="modal-content">
-      <h3 id="storage-modal-title">成績データの保存先を選択</h3>
-      <div class="storage-choices modal-choices">
-        <label><input type="radio" name="store" value="local" checked />このブラウザに保存（共有しない）</label>
-        <label><input type="radio" name="store" value="file" />この端末のファイルに保存（共有しない）</label>
-      </div>
-      <div id="modal-file-setup" class="hidden">
-        <div class="file-setup-row">
-          <button id="modal-create-file-btn" type="button">新規ファイルを作成</button>
-          <button id="modal-open-file-btn" type="button">既存ファイルを開く</button>
-        </div>
-        <div id="modal-file-status" class="muted small">未設定</div>
-      </div>
+      <h3>設定</h3>
+      <p>この端末に保存された成績データ（localStorage）をリセットします。よろしいですか？</p>
       <div class="modal-actions">
-        <button id="modal-save-store-btn" type="button" class="primary">この設定で開始</button>
+        <button id="reset-confirm" class="danger">リセットする</button>
+        <button id="reset-cancel">キャンセル</button>
       </div>
     </div>
   </div>
