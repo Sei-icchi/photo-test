@@ -77,19 +77,12 @@ button {
 }
 button:hover { transform: translateY(-1px); }
 button:disabled { opacity: .6; cursor: not-allowed; }
-button.primary {
-  background: var(--primary);
-  color: #fff;
-}
-button.danger {
-  background: var(--danger);
-  color: #fff;
-}
+button.primary { background: var(--primary); color: #fff; }
 
 /* Quiz Screen */
 .question {
   max-width: 900px;
-  margin: 2em auto; /* ← 上下に2行分の空間 */
+  margin: 2.8rem auto; /* 問題行の上下にほぼ2行分の空間 */
   font-size: 1.2rem;
   font-weight: 600;
 }
@@ -98,7 +91,7 @@ button.danger {
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2x2 */
-  gap: 12px; /* 間隔を少し狭く */
+  gap: 12px; /* 間隔控えめ */
 }
 .choice-button {
   padding: 14px 12px;
@@ -139,11 +132,7 @@ button.danger {
   color: #fff;
   border-color: transparent;
 }
-.confidence-note {
-  margin-left: 8px;
-  color: var(--muted);
-  font-size: .9em;
-}
+.must-check { color: var(--muted); font-size: .95em; margin-left: 8px; }
 
 textarea#memo {
   width: 100%;
@@ -156,16 +145,16 @@ textarea#memo {
   background: #fff;
 }
 
-/* Control buttons (次の問題 / 成績 / 設定 / ホーム) */
+/* Control buttons (「次の問題」「成績」「設定」「ホーム」) */
 #control-buttons {
   margin-top: 18px;
   display: flex;
-  justify-content: center; /* 最下部に中央並び */
+  justify-content: center;
   gap: 14px;
 }
 #next-btn {
-  font-size: 1.3rem;
-  padding: 16px 32px;
+  font-size: 1.28rem;
+  padding: 16px 30px;
 }
 
 /* Score Screen */
@@ -176,6 +165,7 @@ textarea#memo {
   padding: 20px;
   border-radius: var(--radius);
   box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  position: relative;
 }
 .table-wrap table {
   width: 100%;
@@ -189,42 +179,42 @@ textarea#memo {
 }
 .table-wrap th { background: #f7f8ff; }
 
-/* スクロールしても付いてくる戻るボタン（固定配置） */
-.floating-back {
+/* スクロールしても付いてくる戻るボタン（固定表示） */
+.sticky-back {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 1000;
-  padding: 12px 18px;
-  border-radius: 999px;
+  right: 20px;
+  bottom: 20px;
+  padding: 12px 16px;
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(0,0,0,.15);
+  border-radius: 999px;
+  box-shadow: 0 8px 16px rgba(0,0,0,.15);
+  z-index: 1000;
 }
 
-/* Modal */
-.modal {
+/* 設定モーダル */
+.overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
+  background: rgba(16,16,32,.4);
+  display: grid;
+  place-items: center;
   z-index: 2000;
 }
-.modal .modal-content {
-  width: min(520px, 92vw);
+.modal {
+  width: min(560px, 92vw);
   background: #fff;
-  border-radius: var(--radius);
+  border-radius: 16px;
   padding: 18px 16px;
-  box-shadow: 0 8px 30px rgba(0,0,0,.2);
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
 }
-.modal .modal-actions {
+.modal h3 { margin: 0 0 8px; }
+.modal-actions {
   display: flex;
-  gap: 10px;
   justify-content: flex-end;
-  margin-top: 14px;
+  gap: 10px;
+  margin-top: 12px;
 }
+.modal .danger { background: var(--danger); color: #fff; }
 
 .hidden { display: none; }

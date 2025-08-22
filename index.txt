@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>技能検定 問題集</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Start Screen -->
+  <div id="start-screen" class="centered">
+    <h1>技能検定 問題集</h1>
+
+    <div class="form-row">
+      <div class="form-label">ジャンルを選択:</div>
+      <div class="genre-grid">
+        <label><input type="checkbox" value="歴史" checked />歴史</label>
+        <label><input type="checkbox" value="光・色彩" checked />光・色彩</label>
+        <label><input type="checkbox" value="カメラ・レンズ" checked />カメラ・レンズ</label>
+        <label><input type="checkbox" value="撮影・ライティング" checked />撮影・ライティング</label>
+        <label><input type="checkbox" value="画像処理" checked />画像処理</label>
+        <label><input type="checkbox" value="その他" checked />その他</label>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-label">出題方式:</div>
+      <!-- ボックスは残す（ロジックでは使用しない） -->
+      <select id="mode-select" class="narrow-select">
+        <option value="balanced"></option>
+      </select>
+    </div>
+
+    <button id="start-btn" class="primary">スタート</button>
+  </div>
+
+  <!-- Quiz Screen -->
+  <div id="quiz-screen" class="hidden">
+    <div id="question-container" class="question"></div>
+    <div id="choices-container" class="choices"></div>
+
+    <div id="feedback" class="hidden feedback"></div>
+
+    <div id="confidence-container" class="hidden confidence-wrap">
+      <div class="confidence-row">
+        <span>自信度:</span>
+        <button class="confidence" data-level="低" type="button">低</button>
+        <button class="confidence" data-level="中" type="button">中</button>
+        <button class="confidence" data-level="高" type="button">高</button>
+        <span class="must-check">(必ずチェックする)</span>
+      </div>
+      <textarea id="memo" placeholder="メモを入力..."></textarea>
+      <!-- コントロールボタンはJSで都度再生成（重複防止のため） -->
+    </div>
+  </div>
+
+  <!-- Score Screen -->
+  <div id="score-screen" class="hidden">
+    <h2>成績一覧</h2>
+    <div id="score-table" class="table-wrap"></div>
+    <!-- スクロールしても付いてくる戻るボタン -->
+    <button type="button" class="sticky-back" onclick="backToQuiz()">戻る</button>
+  </div>
+
+  <!-- 設定モーダル -->
+  <div id="settings-overlay" class="hidden overlay">
+    <div class="modal">
+      <h3>設定</h3>
+      <p>この端末に保存されている成績データ（localStorage）をリセットします。よろしいですか？</p>
+      <div class="modal-actions">
+        <button id="modal-cancel">キャンセル</button>
+        <button id="modal-reset" class="danger">リセットする</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
